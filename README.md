@@ -17,7 +17,7 @@ npm run build    # production build (dist/)
 - `src/data/places.ts`: places (coordinates, segment where each first appears, spoiler level, safe/full descriptions)
 - `src/lib/spoiler.ts`: spoiler visibility rules
 - `src/lib/search.ts`: search across all four languages plus Korean initial consonants (choseong); excludes hidden places and locked descriptions
-- `src/components/MapView.tsx`: Leaflet map (CARTO Voyager / Dark Matter tiles from OpenStreetMap data)
+- `src/components/MapView.tsx`: MapLibre GL map with OpenFreeMap vector tiles (OpenStreetMap data, no API key). Map labels follow the app language via OSM `name:ko/en/ja/zh`, falling back to romanized names.
 - `src/components/Sheet.tsx`: bottom sheet on mobile (peek / half / full), floating panel on desktop
 
 ## Spoiler rules
@@ -30,7 +30,7 @@ npm run build    # production build (dist/)
 ## Before release
 - All sample data is `verified: false`, with approximate coordinates. Coordinates, episode numbers and scene descriptions must be checked.
 - Japanese and Chinese translations need a native-speaker review.
-- CARTO basemaps are free for limited non-commercial use; for real traffic, move to a paid tile plan (CARTO, MapTiler, etc.).
+- OpenFreeMap is free with no key or request limit, but has no SLA. To switch providers (e.g. MapTiler), change `STYLE_URL` in `MapView.tsx`.
 
 ## Deploy
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which tests, builds and publishes to GitHub Pages.

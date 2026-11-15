@@ -7,7 +7,7 @@ import { t, tr, LANG_LABEL, LANG_SHORT } from './i18n';
 import { partition, visibilityOf, type Progress, type Visibility } from './lib/spoiler';
 import { searchPlaces, searchWorks } from './lib/search';
 import { distanceKm, formatKm, directionLinks } from './lib/geo';
-import { MapView, MapControls, TYPE_COLOR, type MapPlace } from './components/MapView';
+import { MapView, TYPE_COLOR, type MapPlace } from './components/MapView';
 import { Sheet, type Snap } from './components/Sheet';
 import { Cover, TypeDot, TypeIcon } from './components/Cover';
 
@@ -367,9 +367,10 @@ export default function App() {
           user={route.name === 'near' ? origin : userPos}
           radiusKm={route.name === 'near' ? radius : undefined}
           fitKey={fitKey}
-        >
-          <MapControls onLocate={locate} locating={locState === 'loading'} labels={{ zoomIn: t('zoomIn', lang), zoomOut: t('zoomOut', lang), locate: t('locate', lang) }} />
-        </MapView>
+          onLocate={locate}
+          locating={locState === 'loading'}
+          labels={{ zoomIn: t('zoomIn', lang), zoomOut: t('zoomOut', lang), locate: t('locate', lang) }}
+        />
       </div>
 
       <div className="side">

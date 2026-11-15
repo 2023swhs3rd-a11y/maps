@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Circle, Tooltip, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { useEffect, useRef, useState } from 'react';
+import maplibregl, { type Map as MLMap, type StyleSpecification, type ExpressionSpecification } from 'maplibre-gl';
 import type { Lang, Place, WorkType } from '../types';
 import { tr } from '../i18n';
 
@@ -17,74 +16,77 @@ export const GLYPH: Record<WorkType, string> = {
   literature: '<path d="M12 9c-1.5-1.1-3.2-1.4-5-1.2v7.6c1.8-.2 3.5.1 5 1.2 1.5-1.1 3.2-1.4 5-1.2V7.8c-1.8-.2-3.5.1-5 1.2zM12 9v7.6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>',
 };
 
-const iconCache = new Map<string, L.DivIcon>();
-function pin(type: WorkType, state: 'normal' | 'selected' | 'dim', num?: number) {
-  const key = `${type}|${state}|${num ?? ''}`;
-  let ic = iconCache.get(key);
-  if (ic) return ic;
+/** OpenFreeMap: 키 없이 쓰는 무료 벡터 타일(OpenStreetMap 데이터) */
+const STYLE_URL = {
+  light: 'https://tiles.openfreemap.org/styles/liberty',
+  dark: 'https://tiles.openfreemap.org/styles/dark',
+};
+
+/**
+ * 지도 글자 언어. OSM의 name:xx 번역을 우선 쓰고,
+ * 번역이 없으면 로마자 표기(name:latin) → 원래 이름 순으로 대체합니다.
+ */
+function labelExpr(lang: Lang): ExpressionSpecification {
+  if (lang === 'ko') return ['coalesce', ['get', 'name:ko'], ['get', 'name']];
+  return ['coalesce', ['get', `name:${lang}`], ['get', 'name:latin'], ['get', 'name_en'], ['get', 'name']];
+}
+
+function applyLanguage(map: MLMap, lang: Lang) {
+  const style = map.getStyle() as StyleSpecification | undefined;
+  if (!style) return;
+  for (const layer of style.layers) {
+    if (layer.type !== 'symbol') continue;
+    const tf = layer.layout?.['text-field'];
+    // 도로 번호(ref)·건물 번호 등은 그대로 두고, 이름을 쓰는 레이어만 바꿉니다
+    if (tf === undefined || !JSON.stringify(tf).includes('name')) continue;
+    map.setLayoutProperty(layer.id, 'text-field', labelExpr(lang));
+  }
+}
+
+function pinHTML(type: WorkType, state: 'normal' | 'selected' | 'dim', num: number | undefined, label: string) {
   const size = state === 'selected' ? 46 : 34;
-  const color = TYPE_COLOR[type];
   const inner = num !== undefined
     ? `<text x="12" y="15.4" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${num}</text>`
     : GLYPH[type];
-  ic = L.divIcon({
-    className: `pin pin-${state}`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size - 2],
-    tooltipAnchor: [0, -size + 4],
-    html: `<svg viewBox="0 0 24 26" width="${size}" height="${size}"><path d="M12 25s-8.5-8.2-8.5-14.2A8.5 8.5 0 0 1 20.5 10.8C20.5 16.8 12 25 12 25z" fill="${color}" stroke="#fff" stroke-width="1.5"/>${inner}</svg>`,
-  });
-  iconCache.set(key, ic);
-  return ic;
+  const tag = state === 'selected' ? `<span class="pin-label">${label.replace(/</g, '&lt;')}</span>` : '';
+  return `${tag}<svg viewBox="0 0 24 26" width="${size}" height="${size}"><path d="M12 25s-8.5-8.2-8.5-14.2A8.5 8.5 0 0 1 20.5 10.8C20.5 16.8 12 25 12 25z" fill="${TYPE_COLOR[type]}" stroke="#fff" stroke-width="1.5"/>${inner}</svg>`;
 }
 
-const userIcon = L.divIcon({ className: 'user-dot', iconSize: [22, 22], iconAnchor: [11, 11], html: '<span></span>' });
+/** 반경 원을 지도에 그리기 위한 다각형 */
+function circle(center: [number, number], km: number, steps = 72): GeoJSON.Feature<GeoJSON.Polygon> {
+  const [lat, lng] = center;
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * 2 * Math.PI;
+    const dLat = (km / 111.32) * Math.sin(a);
+    const dLng = (km / (111.32 * Math.cos((lat * Math.PI) / 180))) * Math.cos(a);
+    coords.push([lng + dLng, lat + dLat]);
+  }
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [coords] } };
+}
 
-/** 사이드 패널(데스크톱)과 하단 시트(모바일)에 가려지지 않게 여백을 두고 맞춥니다. */
-function padding(): { tl: L.PointExpression; br: L.PointExpression } {
+/** 사이드 패널(데스크톱)과 하단 시트(모바일)에 가려지지 않는 여백 */
+function padding() {
   const mobile = window.matchMedia('(max-width: 760px)').matches;
   return mobile
-    ? { tl: [40, 130], br: [40, Math.round(window.innerHeight * 0.5)] }
-    : { tl: [480, 60], br: [80, 60] };
-}
-
-function FitTo({ points, focus, fitKey }: { points: [number, number][]; focus?: [number, number]; fitKey: string }) {
-  const map = useMap();
-  useEffect(() => {
-    const { tl, br } = padding();
-    if (focus) {
-      const z = Math.max(map.getZoom(), 14);
-      // 패딩만큼 중심을 옮겨서, 보이는 영역의 가운데에 오게 합니다
-      const size = map.getSize();
-      const tlp = L.point(tl), brp = L.point(br);
-      const offset = L.point((tlp.x - brp.x) / 2, (tlp.y - brp.y) / 2);
-      const target = map.unproject(map.project(focus, z).subtract(offset), z);
-      if (size.x > 0) map.flyTo(target, z, { duration: 0.7 });
-    } else if (points.length === 1) {
-      map.flyToBounds(L.latLngBounds([points[0], points[0]]), { paddingTopLeft: tl, paddingBottomRight: br, maxZoom: 13, duration: 0.7 });
-    } else if (points.length > 1) {
-      map.flyToBounds(L.latLngBounds(points), { paddingTopLeft: tl, paddingBottomRight: br, maxZoom: 14, duration: 0.7 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey]);
-  return null;
+    ? { top: 130, left: 40, right: 40, bottom: Math.round(window.innerHeight * 0.5) + 48 }
+    : { top: 60, left: 480, right: 80, bottom: 60 };
 }
 
 function useDark() {
-  const mq = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : undefined;
-  const [dark, setDark] = useState(!!mq?.matches);
+  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   useEffect(() => {
-    if (!mq) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const f = (e: MediaQueryListEvent) => setDark(e.matches);
     mq.addEventListener('change', f);
     return () => mq.removeEventListener('change', f);
-  }, [mq]);
+  }, []);
   return dark;
 }
 
 export interface MapPlace { place: Place; type: WorkType; num?: number }
 
-export function MapView(props: {
+interface Props {
   lang: Lang;
   items: MapPlace[];
   selectedId?: string;
@@ -93,73 +95,152 @@ export function MapView(props: {
   user?: [number, number];
   radiusKm?: number;
   fitKey: string;
-  children?: ReactNode;
-}) {
-  const { items, selectedId, onSelect, route, user, radiusKm, lang, fitKey, children } = props;
-  const dark = useDark();
-  const points = useMemo<[number, number][]>(() => {
-    const pts = items.map((i) => [i.place.lat, i.place.lng] as [number, number]);
-    if (user) pts.push(user);
-    return pts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey]);
-  const sel = items.find((i) => i.place.id === selectedId)?.place;
-
-  return (
-    <MapContainer center={[36.3, 127.9]} zoom={7} minZoom={6} className="map" zoomControl={false} attributionControl>
-      <TileLayer
-        key={dark ? 'dark' : 'light'}
-        url={`https://{s}.basemaps.cartocdn.com/rastertiles/${dark ? 'dark_all' : 'voyager'}/{z}/{x}/{y}{r}.png`}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        subdomains="abcd"
-        maxZoom={19}
-      />
-      <FitTo points={points} focus={sel ? [sel.lat, sel.lng] : undefined} fitKey={fitKey + '|' + (selectedId ?? '')} />
-      {route && route.length > 1 && (
-        <Polyline positions={route} pathOptions={{ color: dark ? '#ced4da' : '#495057', weight: 2.5, dashArray: '2 7', lineCap: 'round', opacity: 0.8 }} />
-      )}
-      {user && radiusKm && <Circle center={user} radius={radiusKm * 1000} pathOptions={{ color: '#4c6ef5', weight: 1, fillColor: '#4c6ef5', fillOpacity: 0.06 }} />}
-      {user && <Marker position={user} icon={userIcon} interactive={false} zIndexOffset={-100} />}
-      {items.map(({ place, type, num }) => {
-        const state = place.id === selectedId ? 'selected' : selectedId ? 'dim' : 'normal';
-        return (
-          <Marker
-            key={place.id + state + (num ?? '')}
-            position={[place.lat, place.lng]}
-            icon={pin(type, state, num)}
-            title={tr(place.name, lang)}
-            alt={tr(place.name, lang)}
-            keyboard
-            zIndexOffset={state === 'selected' ? 1000 : 0}
-            eventHandlers={{ click: () => onSelect(place) }}
-          >
-            {state === 'selected' && (
-              <Tooltip permanent direction="top" className="pin-label" offset={[0, -2]}>{tr(place.name, lang)}</Tooltip>
-            )}
-          </Marker>
-        );
-      })}
-      {children}
-    </MapContainer>
-  );
+  onLocate: () => void;
+  locating: boolean;
+  labels: { zoomIn: string; zoomOut: string; locate: string };
 }
 
-/** 지도 위 오른쪽 아래의 둥근 버튼들(확대/축소/내 위치) */
-export function MapControls({ onLocate, locating, labels }: { onLocate: () => void; locating: boolean; labels: { zoomIn: string; zoomOut: string; locate: string } }) {
-  const map = useMap();
-  const ref = useRef<HTMLDivElement>(null);
+const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+
+export function MapView(props: Props) {
+  const { items, selectedId, onSelect, route, user, radiusKm, lang, fitKey } = props;
+  const el = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MLMap>();
+  const markers = useRef(new Map<string, maplibregl.Marker>());
+  const userMarker = useRef<maplibregl.Marker>();
+  const [ready, setReady] = useState(0); // 스타일이 (다시) 로드될 때마다 증가
+  const dark = useDark();
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  // ── 지도 생성 ──
   useEffect(() => {
-    if (ref.current) { L.DomEvent.disableClickPropagation(ref.current); L.DomEvent.disableScrollPropagation(ref.current); }
+    const map = new maplibregl.Map({
+      container: el.current!,
+      style: STYLE_URL[dark ? 'dark' : 'light'],
+      center: [127.9, 36.3],
+      zoom: 6.2,
+      minZoom: 5,
+      maxZoom: 18,
+      attributionControl: { compact: true },
+      // 한글·한자·가나는 기기 글꼴로 그려서 글리프 다운로드를 줄입니다
+      localIdeographFontFamily: "'Pretendard Variable', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', 'Noto Sans CJK KR', sans-serif",
+      dragRotate: false,
+      pitchWithRotate: false,
+    });
+    map.touchZoomRotate.disableRotation();
+    map.on('style.load', () => setReady((n) => n + 1));
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = undefined; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── 라이트/다크 전환 ──
+  const firstStyle = useRef(true);
+  useEffect(() => {
+    if (firstStyle.current) { firstStyle.current = false; return; }
+    mapRef.current?.setStyle(STYLE_URL[dark ? 'dark' : 'light']);
+  }, [dark]);
+
+  // ── 언어 ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map && ready) applyLanguage(map, lang);
+  }, [lang, ready]);
+
+  // ── 경로선·반경 레이어 (스타일이 바뀌면 다시 추가) ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (!map.getSource('route')) {
+      map.addSource('route', { type: 'geojson', data: EMPTY });
+      map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#ced4da' : '#495057', 'line-width': 2.5, 'line-dasharray': [0.5, 2.5], 'line-opacity': 0.85 } });
+    }
+    if (!map.getSource('radius')) {
+      map.addSource('radius', { type: 'geojson', data: EMPTY });
+      map.addLayer({ id: 'radius-fill', type: 'fill', source: 'radius', paint: { 'fill-color': '#4c6ef5', 'fill-opacity': 0.07 } });
+      map.addLayer({ id: 'radius-line', type: 'line', source: 'radius', paint: { 'line-color': '#4c6ef5', 'line-width': 1.2, 'line-opacity': 0.6 } });
+    }
+    (map.getSource('route') as maplibregl.GeoJSONSource).setData(
+      route && route.length > 1
+        ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.map(([la, ln]) => [ln, la]) } }
+        : EMPTY,
+    );
+    (map.getSource('radius') as maplibregl.GeoJSONSource).setData(user && radiusKm ? circle(user, radiusKm) : EMPTY);
+  }, [ready, route, user, radiusKm, dark]);
+
+  // ── 장소 마커 ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const keep = new Set<string>();
+    for (const { place, type, num } of items) {
+      const state = place.id === selectedId ? 'selected' : selectedId ? 'dim' : 'normal';
+      const key = place.id;
+      keep.add(key);
+      const html = pinHTML(type, state, num, tr(place.name, lang));
+      let m = markers.current.get(key);
+      if (!m) {
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.addEventListener('click', (e) => { e.stopPropagation(); onSelectRef.current(place); });
+        m = new maplibregl.Marker({ element: node, anchor: 'bottom' }).setLngLat([place.lng, place.lat]).addTo(map);
+        markers.current.set(key, m);
+      }
+      const node = m.getElement();
+      if (node.dataset.html !== html) { node.innerHTML = html; node.dataset.html = html; }
+      node.className = `pin pin-${state}`;
+      node.setAttribute('aria-label', tr(place.name, lang));
+      node.style.zIndex = state === 'selected' ? '3' : state === 'normal' ? '2' : '1';
+    }
+    for (const [key, m] of markers.current) {
+      if (!keep.has(key)) { m.remove(); markers.current.delete(key); }
+    }
+  }, [items, selectedId, lang]);
+
+  // ── 내 위치 ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!user) { userMarker.current?.remove(); userMarker.current = undefined; return; }
+    if (!userMarker.current) {
+      const node = document.createElement('div');
+      node.className = 'user-dot';
+      node.innerHTML = '<span></span>';
+      userMarker.current = new maplibregl.Marker({ element: node }).setLngLat([user[1], user[0]]).addTo(map);
+    } else userMarker.current.setLngLat([user[1], user[0]]);
+  }, [user]);
+
+  // ── 화면 맞추기 ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const pad = padding();
+    const sel = items.find((i) => i.place.id === selectedId)?.place;
+    if (sel) {
+      map.flyTo({ center: [sel.lng, sel.lat], zoom: Math.max(map.getZoom(), 14), padding: pad, duration: 900 });
+      return;
+    }
+    const pts = items.map((i) => [i.place.lng, i.place.lat] as [number, number]);
+    if (user) pts.push([user[1], user[0]]);
+    if (pts.length === 0) return;
+    const b = pts.reduce((acc, p) => acc.extend(p), new maplibregl.LngLatBounds(pts[0], pts[0]));
+    map.fitBounds(b, { padding: pad, maxZoom: pts.length === 1 ? 13 : 14, duration: 900 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey, selectedId]);
+
   return (
-    <div className="map-ctrls" ref={ref}>
-      <div className="ctrl-group">
-        <button aria-label={labels.zoomIn} onClick={() => map.zoomIn()}>+</button>
-        <button aria-label={labels.zoomOut} onClick={() => map.zoomOut()}>−</button>
+    <>
+      <div ref={el} className="map" />
+      <div className="map-ctrls">
+        <div className="ctrl-group">
+          <button aria-label={props.labels.zoomIn} onClick={() => mapRef.current?.zoomIn()}>+</button>
+          <button aria-label={props.labels.zoomOut} onClick={() => mapRef.current?.zoomOut()}>−</button>
+        </div>
+        <button className={`ctrl-locate ${props.locating ? 'busy' : ''}`} aria-label={props.labels.locate} title={props.labels.locate} onClick={props.onLocate}>
+          <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="4" fill="currentColor" /><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
       </div>
-      <button className={`ctrl-locate ${locating ? 'busy' : ''}`} aria-label={labels.locate} title={labels.locate} onClick={onLocate}>
-        <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+    </>
   );
 }

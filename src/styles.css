@@ -200,16 +200,16 @@ h1, h2, h3, p { margin: 0; }
 .empty .btn { margin-top: 6px; }
 
 /* ───────── 지도 요소 ───────── */
-.leaflet-container { font-family: var(--font); }
-.pin { background: none; border: 0; transition: transform .15s; }
-.pin svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); overflow: visible; }
-.pin-normal:hover { transform-origin: bottom center; }
-.pin-label { background: var(--bg); color: var(--text); border: 0; border-radius: 8px; box-shadow: var(--shadow-1); font-weight: 700; font-size: 13px; padding: 4px 9px; }
-.pin-label::before { display: none; }
-.user-dot span { display: block; width: 18px; height: 18px; margin: 2px; border-radius: 50%; background: #4c6ef5; border: 3px solid #fff; box-shadow: 0 0 0 0 rgba(76,110,245,.5); animation: pulse 2s infinite; }
+.maplibregl-map { font-family: var(--font); }
+.pin { position: relative; display: block; background: none; border: 0; padding: 0; cursor: pointer; line-height: 0; transition: opacity .15s; }
+.pin svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); overflow: visible; transition: transform .15s; transform-origin: 50% 100%; }
+.pin-normal:hover svg { transform: scale(1.12); }
+.pin-dim { opacity: .55; }
+.pin-label { position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, -4px); background: var(--bg); color: var(--text); border-radius: 8px; box-shadow: var(--shadow-1); font: 700 13px/1.3 var(--font); padding: 4px 9px; white-space: nowrap; pointer-events: none; }
+.user-dot span { display: block; width: 18px; height: 18px; border-radius: 50%; background: #4c6ef5; border: 3px solid #fff; animation: pulse 2s infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(76,110,245,.45); } 70% { box-shadow: 0 0 0 14px rgba(76,110,245,0); } 100% { box-shadow: 0 0 0 0 rgba(76,110,245,0); } }
-.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--bg) 80%, transparent) !important; color: var(--muted); }
-.leaflet-control-attribution a { color: var(--muted); }
+.maplibregl-ctrl-attrib { font-size: 11px; }
+.maplibregl-ctrl-bottom-right { right: 0; bottom: 0; }
 
 .map-ctrls { position: absolute; right: 16px; bottom: 32px; z-index: 800; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
 .ctrl-group { display: flex; flex-direction: column; background: var(--bg); border-radius: 12px; box-shadow: var(--shadow-2); overflow: hidden; }
@@ -230,8 +230,7 @@ h1, h2, h3, p { margin: 0; }
   .topbar { position: absolute; left: 0; right: 0; top: 0; padding: max(10px, env(safe-area-inset-top)) 12px 0; z-index: 600; }
   .searchbox { height: 50px; }
   .chiprow { margin: 0 -12px; padding: 2px 12px 6px; }
-  .leaflet-bottom.leaflet-right { bottom: auto; right: auto; left: 0; top: calc(max(10px, env(safe-area-inset-top)) + 100px); }
-  .leaflet-control-attribution { border-radius: 0 6px 6px 0; }
+  .maplibregl-ctrl-bottom-right { bottom: auto; top: calc(max(10px, env(safe-area-inset-top)) + 96px); }
   .sheet {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 700; flex: none;
     border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom);
@@ -239,7 +238,7 @@ h1, h2, h3, p { margin: 0; }
   .sheet-grip > span { display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--surface-2); margin: 8px auto 0; }
   .sheet-grip { cursor: grab; }
   .sheet-head { min-height: 46px; }
-  .map-ctrls { bottom: auto; top: 128px; }
+  .map-ctrls { bottom: auto; top: 150px; }
   .ctrl-group { display: none; }
   .dir-row { grid-template-columns: 1fr 1fr 1fr; }
   .btn { font-size: 12.5px; padding: 0 6px; }
