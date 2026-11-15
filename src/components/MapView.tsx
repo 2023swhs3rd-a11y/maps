@@ -17,10 +17,8 @@ export const GLYPH: Record<WorkType, string> = {
 };
 
 /** OpenFreeMap: 키 없이 쓰는 무료 벡터 타일(OpenStreetMap 데이터) */
-const STYLE_URL = {
-  light: 'https://tiles.openfreemap.org/styles/liberty',
-  dark: 'https://tiles.openfreemap.org/styles/dark',
-};
+// 지도 가독성을 위해 다크 모드에서도 밝고 색이 분명한 liberty 스타일을 씁니다.
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 /**
  * 지도 글자 언어. OSM의 name:xx 번역을 우선 쓰고,
@@ -69,19 +67,8 @@ function circle(center: [number, number], km: number, steps = 72): GeoJSON.Featu
 function padding() {
   const mobile = window.matchMedia('(max-width: 760px)').matches;
   return mobile
-    ? { top: 130, left: 40, right: 40, bottom: Math.round(window.innerHeight * 0.5) + 48 }
+    ? { top: 170, left: 40, right: 72, bottom: Math.round(window.innerHeight * 0.5) + 48 }
     : { top: 60, left: 480, right: 80, bottom: 60 };
-}
-
-function useDark() {
-  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const f = (e: MediaQueryListEvent) => setDark(e.matches);
-    mq.addEventListener('change', f);
-    return () => mq.removeEventListener('change', f);
-  }, []);
-  return dark;
 }
 
 export interface MapPlace { place: Place; type: WorkType; num?: number }
@@ -109,7 +96,6 @@ export function MapView(props: Props) {
   const markers = useRef(new Map<string, maplibregl.Marker>());
   const userMarker = useRef<maplibregl.Marker>();
   const [ready, setReady] = useState(0); // 스타일이 (다시) 로드될 때마다 증가
-  const dark = useDark();
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -117,7 +103,7 @@ export function MapView(props: Props) {
   useEffect(() => {
     const map = new maplibregl.Map({
       container: el.current!,
-      style: STYLE_URL[dark ? 'dark' : 'light'],
+      style: STYLE_URL,
       center: [127.9, 36.3],
       zoom: 6.2,
       minZoom: 5,
@@ -135,13 +121,6 @@ export function MapView(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── 라이트/다크 전환 ──
-  const firstStyle = useRef(true);
-  useEffect(() => {
-    if (firstStyle.current) { firstStyle.current = false; return; }
-    mapRef.current?.setStyle(STYLE_URL[dark ? 'dark' : 'light']);
-  }, [dark]);
-
   // ── 언어 ──
   useEffect(() => {
     const map = mapRef.current;
@@ -154,7 +133,7 @@ export function MapView(props: Props) {
     if (!map || !ready) return;
     if (!map.getSource('route')) {
       map.addSource('route', { type: 'geojson', data: EMPTY });
-      map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#ced4da' : '#495057', 'line-width': 2.5, 'line-dasharray': [0.5, 2.5], 'line-opacity': 0.85 } });
+      map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#212529', 'line-width': 3, 'line-dasharray': [0.5, 2.5], 'line-opacity': 0.85 } });
     }
     if (!map.getSource('radius')) {
       map.addSource('radius', { type: 'geojson', data: EMPTY });
@@ -167,7 +146,7 @@ export function MapView(props: Props) {
         : EMPTY,
     );
     (map.getSource('radius') as maplibregl.GeoJSONSource).setData(user && radiusKm ? circle(user, radiusKm) : EMPTY);
-  }, [ready, route, user, radiusKm, dark]);
+  }, [ready, route, user, radiusKm]);
 
   // ── 장소 마커 ──
   useEffect(() => {

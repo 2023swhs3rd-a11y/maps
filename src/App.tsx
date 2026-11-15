@@ -4,6 +4,7 @@ import { LANGS } from './types';
 import { works } from './data/works';
 import { places } from './data/places';
 import { t, tr, LANG_LABEL, LANG_SHORT } from './i18n';
+import { LangPicker, GlobeIcon } from './components/LangPicker';
 import { partition, visibilityOf, type Progress, type Visibility } from './lib/spoiler';
 import { searchPlaces, searchWorks } from './lib/search';
 import { distanceKm, formatKm, directionLinks } from './lib/geo';
@@ -27,11 +28,13 @@ function load<T>(key: string, fallback: T): T {
 function save(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* 저장 불가 환경 */ }
 }
-function detectLang(): Lang {
-  const saved = load<Lang | null>('lang', null);
-  if (saved && LANGS.includes(saved)) return saved;
+function browserLang(): Lang {
   const n = (navigator.language || 'ko').slice(0, 2);
   return (LANGS as string[]).includes(n) ? (n as Lang) : 'en';
+}
+function detectLang(): Lang {
+  const saved = load<Lang | null>('lang', null);
+  return saved && LANGS.includes(saved) ? saved : browserLang();
 }
 
 // ───────── 해시 라우팅: 뒤로 가기와 링크 공유가 그대로 동작합니다 ─────────
@@ -47,6 +50,9 @@ const go = (h: string) => { if (location.hash !== h) location.hash = h; };
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(detectLang);
+  // 처음 방문하면 언어 선택 화면을 먼저 띄웁니다. 이후에는 상단 언어 버튼으로 다시 열 수 있습니다.
+  const [langOpen, setLangOpen] = useState(() => !load<boolean>('langChosen', false));
+  const chooseLang = (l: Lang) => { setLang(l); save('langChosen', true); setLangOpen(false); };
   const [route, setRoute] = useState<Route>(parseHash);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<WorkType | 'all'>('all');
@@ -386,16 +392,16 @@ export default function App() {
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
             />
             {query && <button className="iconbtn" aria-label={t('clear', lang)} onClick={() => setQuery('')}>✕</button>}
-            <label className="lang" title={t('language', lang)}>
-              <span aria-hidden>{LANG_SHORT[lang]}</span>
-              <select value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t('language', lang)}>
-                {LANGS.map((l) => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
-              </select>
-            </label>
+            <button className="lang" onClick={() => setLangOpen(true)} aria-label={`${t('language', lang)}: ${LANG_LABEL[lang]}`} aria-haspopup="dialog">
+              <GlobeIcon />
+              <span className="lang-full">{LANG_LABEL[lang]}</span>
+              <span className="lang-short">{LANG_SHORT[lang]}</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
           </div>
           <div className="chiprow">
             <button className={`shield ${revealAll ? 'off' : ''}`} aria-pressed={!revealAll} onClick={() => setRevealAll((v) => !v)}>
-              {revealAll ? '👁' : '🛡'} {revealAll ? t('spoilerOff', lang) : t('spoilerOn', lang)}
+              <ShieldIcon off={revealAll} /> {revealAll ? t('spoilerOff', lang) : t('spoilerOn', lang)}
             </button>
             {showChips && (['all', ...TYPES] as const).map((k) => (
               <button key={k} className={`chip ${typeFilter === k ? 'on' : ''}`} onClick={() => setTypeFilter(k)}>
@@ -410,6 +416,7 @@ export default function App() {
         </Sheet>
       </div>
 
+      {langOpen && <LangPicker current={lang} detected={browserLang()} firstVisit={!load<boolean>('langChosen', false)} onChoose={chooseLang} onClose={() => setLangOpen(false)} />}
       <div className={`toast ${toast ? 'show' : ''}`} role="status" aria-live="polite">{toast}</div>
     </div>
   );
@@ -454,6 +461,14 @@ function SpoilerReveal({ text, lang }: { text: string; lang: Lang }) {
   );
 }
 
+function ShieldIcon({ off }: { off: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+      <path d="M12 2.5l7.5 3v6c0 4.6-3.2 8.4-7.5 10-4.3-1.6-7.5-5.4-7.5-10v-6z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      {off ? <path d="M5 4l14 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> : <path d="M8.5 12l2.5 2.5 4.5-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
+    </svg>
+  );
+}
 function ShareIcon() {
   return <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
