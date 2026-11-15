@@ -1,6 +1,7 @@
 import type { Lang, Work } from '../types';
 import { tr } from '../i18n';
 import { TYPE_COLOR, GLYPH } from './MapView';
+import { workExtra, pick, tmdbImg } from '../data/enrich';
 
 // 저작권 이미지 대신, 작품 id로 결정되는 그라데이션 커버를 만듭니다.
 const PALETTES: Record<Work['type'], [string, string][]> = {
@@ -21,6 +22,14 @@ export function Cover({ work, lang, size = 'md' }: { work: Work; lang: Lang; siz
   const [a, b] = pal[hash(work.id) % pal.length];
   const angle = 120 + (hash(work.id + 'x') % 90);
   const title = tr(work.title, 'ko').replace(/^.*-\s*/, ''); // 부제 제거(도깨비 등)
+  const poster = tmdbImg(pick(workExtra(work.id)?.poster, lang), size === 'sm' ? 'w92' : size === 'lg' ? 'w342' : 'w185');
+  if (poster) {
+    return (
+      <div className={`cover cover-${size} has-poster`} style={{ background: `linear-gradient(${angle}deg, ${a}, ${b})` }} aria-hidden>
+        <img src={poster} alt="" loading="lazy" decoding="async" />
+      </div>
+    );
+  }
   return (
     <div className={`cover cover-${size}`} style={{ background: `linear-gradient(${angle}deg, ${a}, ${b})` }} aria-hidden>
       <TypeIcon type={work.type} className="cover-icon" />

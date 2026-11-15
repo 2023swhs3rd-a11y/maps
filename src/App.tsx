@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Lang, Place, Work, WorkType } from './types';
 import { LANGS } from './types';
 import { works } from './data/works';
-import { places } from './data/places';
+import { places as rawPlaces } from './data/places';
+import { placeExtra, officialCoord } from './data/enrich';
+import { WorkDetails, Sources } from './components/WorkDetails';
 import { t, tr, LANG_LABEL, LANG_SHORT } from './i18n';
 import { LangPicker, GlobeIcon } from './components/LangPicker';
 import { partition, visibilityOf, type Progress, type Visibility } from './lib/spoiler';
@@ -13,6 +15,11 @@ import { Sheet, type Snap } from './components/Sheet';
 import { Cover, TypeDot, TypeIcon } from './components/Cover';
 
 // ───────── 데이터 헬퍼 ─────────
+// TourAPI에서 가까운 공식 좌표를 찾은 장소는 그 좌표를 씁니다
+const places: Place[] = rawPlaces.map((p) => {
+  const e = placeExtra(p.id);
+  return officialCoord(e) ? { ...p, lat: e!.lat, lng: e!.lng } : p;
+});
 const workById = new Map(works.map((w) => [w.id, w]));
 const placeById = new Map(places.map((p) => [p.id, p]));
 const placesOf = (id: string) => places.filter((p) => p.workId === id).sort((a, b) => a.appearsAt - b.appearsAt);
@@ -222,6 +229,7 @@ export default function App() {
           <div><b>{all.length}</b><span>{t('statPlaces', lang)}</span></div>
           <div><b>{regions}</b><span>{t('statRegions', lang)}</span></div>
         </div>
+        <WorkDetails work={w} lang={lang} />
         <ProgressPicker work={w} lang={lang} value={progress[w.id]} onChange={(v) => setProgress((p) => ({ ...p, [w.id]: v }))} />
         {hidden > 0 && (
           <div className="notice lock">
@@ -237,12 +245,19 @@ export default function App() {
     const p = placeById.get(route.id)!;
     const w = workById.get(p.workId)!;
     const vis = visOf(p) as Exclude<Visibility, 'hidden'>;
+    const pe = placeExtra(p.id);
     const links = directionLinks(tr(p.name, 'ko'), p.lat, p.lng);
     const list = partition(placesOf(w.id), progress, revealAll).visible.map((v) => v.place);
     const idx = list.findIndex((x) => x.id === p.id);
     header = <div className="sheet-head">{backBtn()}<span className="head-title">{tr(p.name, lang)}</span><button className="iconbtn" aria-label={t('share', lang)} onClick={() => share(tr(p.name, lang))}><ShareIcon /></button></div>;
     body = (
       <div className="view">
+        {pe?.image && (
+          <figure className="place-photo">
+            <img src={pe.image} alt={tr(p.name, lang)} loading="lazy" />
+            <figcaption>{t('photoBy', lang)}{pe.license === 'Type3' ? ' · 공공누리 3유형' : ' · 공공누리 1유형'}</figcaption>
+          </figure>
+        )}
         <div className="place-top">
           <span className="kind-chip" style={{ color: TYPE_COLOR[w.type], borderColor: TYPE_COLOR[w.type] + '55' }}>{t(p.kind, lang)}</span>
           {list.length > 1 && <span className="muted small">{idx + 1} / {list.length}</span>}
@@ -282,7 +297,7 @@ export default function App() {
             <span><b>{t('lockedDetail', lang, { s: tr(w.segments[p.appearsAt], lang) })}</b></span>
           </div>
         )}
-        {!p.verified && <p className="hint warn">⚠ {t('unverified', lang)}</p>}
+        {officialCoord(pe) ? <p className="hint">✓ {t('coordsOfficial', lang)}</p> : !p.verified && <p className="hint warn">⚠ {t('unverified', lang)}</p>}
 
         {list.length > 1 && (
           <>
@@ -355,6 +370,7 @@ export default function App() {
             <ul className={typeFilter === 'all' ? 'hscroll' : 'grid'}>{works.filter((w) => w.type === ty).map(workCard)}</ul>
           </section>
         ))}
+        <Sources lang={lang} />
       </div>
     );
   }

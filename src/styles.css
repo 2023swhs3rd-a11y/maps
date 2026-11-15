@@ -146,6 +146,42 @@ h1, h2, h3, p { margin: 0; }
 .cover-sm .cover-year, .cover-lg .cover-sub { display: none; }
 .cover-md:has(.cover-sub) .cover-title { bottom: 26px; }
 
+/* 포스터 */
+.cover.has-poster::after { background: none; }
+.cover.has-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ───────── 작품 상세 정보 ───────── */
+.wd { display: flex; flex-direction: column; gap: 14px; }
+.wd section { display: flex; flex-direction: column; gap: 8px; }
+.wd .sec { margin-top: 0; }
+.wd-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.wd-tag { font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface); color: var(--text-2); }
+.wd-meta { font-size: 12.5px; color: var(--muted); padding: 3px 4px; }
+.wd-overview { font-size: 14.5px; line-height: 1.65; color: var(--text); }
+.wd-cast { list-style: none; margin: 0 -16px; padding: 0 16px 2px; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; }
+.wd-cast::-webkit-scrollbar { display: none; }
+.wd-cast li { flex: none; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+.wd-cast img, .wd-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; font-weight: 700; color: var(--muted); }
+.wd-cast strong { font-size: 12px; font-weight: 600; line-height: 1.25; }
+.wd-cast small { font-size: 11px; color: var(--muted); line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wd-providers { display: flex; flex-wrap: wrap; gap: 8px; text-decoration: none; color: inherit; }
+.wd-provider { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.wd-provider img { width: 26px; height: 26px; border-radius: 7px; }
+.wd-src { font-size: 12.5px; color: var(--accent); text-decoration: none; font-weight: 600; }
+.wd-src span { color: var(--muted); font-weight: 400; }
+
+/* 장소 사진 */
+.place-photo { margin: -12px -16px 0; position: relative; aspect-ratio: 16 / 9; background: var(--surface-2); overflow: hidden; }
+.place-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.place-photo figcaption { position: absolute; right: 8px; bottom: 6px; font-size: 10.5px; color: #fff; background: rgba(0,0,0,.45); padding: 2px 6px; border-radius: 4px; }
+
+/* 출처 */
+.sources { margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.sources ul { list-style: none; margin: 6px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sources a { color: var(--text-2); }
+.tmdb-notice { display: flex; align-items: center; gap: 8px; font-size: 11.5px; line-height: 1.4; }
+.tmdb-notice svg { flex: none; }
+
 /* ───────── 목록 행 ───────── */
 .plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .prow { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 6px; text-align: left; border-radius: 12px; }

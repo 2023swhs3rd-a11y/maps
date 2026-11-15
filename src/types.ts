@@ -24,6 +24,10 @@ export interface Work {
   creator: L10n; // 작가 또는 감독
   /** 진행 구간. 드라마는 '1화'…, 영화·소설은 '도입/전개/절정/결말' */
   segments: L10n[];
+  /** 스포일러 없는 한두 문장 소개. 영화·드라마는 TMDB 줄거리가 있으면 그것을 우선 씁니다. */
+  summary?: L10n;
+  /** TMDB 검색 힌트. 생략하면 한국어 제목과 연도로 찾습니다. id를 알면 바로 지정합니다. */
+  tmdb?: { id?: number; query?: string };
 }
 
 export interface Place {
@@ -44,4 +48,6 @@ export interface Place {
   kind: 'filming' | 'setting' | 'memorial';
   /** 좌표·사실관계를 검수했는지 여부 */
   verified: boolean;
+  /** TourAPI 검색어(생략하면 장소 이름). 공식 관광지 이름과 다를 때 지정합니다. */
+  tourKeyword?: string;
 }
