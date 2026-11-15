@@ -3,6 +3,7 @@ import { places } from '../data/places';
 import { works } from '../data/works';
 import { visibilityOf } from './spoiler';
 import { searchPlaces, searchWorks, toChoseong } from './search';
+import { directionLinks } from './geo';
 
 const jecheon = places.find((p) => p.id === 'buckwheat-jecheon')!;
 const stairs = places.find((p) => p.id === 'parasite-stairs')!;
@@ -42,14 +43,30 @@ describe('검색', () => {
   });
 });
 
+describe('일본', () => {
+  it('일본 작품을 일본어·한국어·초성으로 찾음', () => {
+    expect(searchWorks('君の名は', works)[0].id).toBe('your-name');
+    expect(searchWorks('ㅅㄹㄷㅋ', works)[0].id).toBe('slam-dunk');
+  });
+  it('결말 장소(스가 신사)는 스포일러로 숨김', () => {
+    expect(searchPlaces('스가', places, {}, false)).toHaveLength(0);
+    expect(searchPlaces('스가', places, { 'your-name': 3 }, false)).toHaveLength(1);
+  });
+  it('일본 장소 길찾기는 카카오·네이버 대신 구글·애플', () => {
+    expect(directionLinks('x', 35, 139, 'JP').map((l) => l.app)).toEqual(['google', 'apple']);
+    expect(directionLinks('x', 37, 127).map((l) => l.app)).toEqual(['kakao', 'naver', 'google']);
+  });
+});
+
 describe('데이터 무결성', () => {
   it('모든 장소가 실제 작품과 유효한 구간을 가리킴', () => {
     for (const p of places) {
       const w = works.find((x) => x.id === p.workId);
       expect(w, p.id).toBeDefined();
       expect(p.appearsAt).toBeLessThan(w!.segments.length);
-      expect(p.lat).toBeGreaterThan(33); expect(p.lat).toBeLessThan(39);
-      expect(p.lng).toBeGreaterThan(124); expect(p.lng).toBeLessThan(132);
+      const [la0, la1, ln0, ln1] = (p.country ?? 'KR') === 'JP' ? [24, 46, 122, 154] : [33, 39, 124, 132];
+      expect(p.lat, p.id).toBeGreaterThan(la0); expect(p.lat, p.id).toBeLessThan(la1);
+      expect(p.lng, p.id).toBeGreaterThan(ln0); expect(p.lng, p.id).toBeLessThan(ln1);
     }
   });
 });

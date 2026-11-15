@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Lang, Place, Work, WorkType } from './types';
+import type { Country, Lang, Place, Work, WorkType } from './types';
+import { COUNTRIES } from './types';
 import { LANGS } from './types';
 import { works } from './data/works';
 import { places as rawPlaces } from './data/places';
@@ -26,7 +27,9 @@ const placesOf = (id: string) => places.filter((p) => p.workId === id).sort((a, 
 const regionOf = (p: Place) => p.address.ko.split(' ').slice(0, 2).join(' ');
 const SEOUL: [number, number] = [37.5663, 126.9779];
 const RADII = [5, 20, 50, 150];
-const TYPES: WorkType[] = ['drama', 'film', 'literature'];
+const TYPES: WorkType[] = ['drama', 'film', 'anime', 'literature'];
+const countryOf = (p: Place): Country => p.country ?? 'KR';
+const workCountries = (id: string) => new Set(placesOf(id).map(countryOf));
 
 // ───────── 저장소 ─────────
 function load<T>(key: string, fallback: T): T {
@@ -63,6 +66,8 @@ export default function App() {
   const [route, setRoute] = useState<Route>(parseHash);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<WorkType | 'all'>('all');
+  const [country, setCountry] = useState<Country | 'all'>(() => load('country', 'all'));
+  useEffect(() => save('country', country), [country]);
   const [progress, setProgress] = useState<Progress>(() => load('progress', {}));
   const [revealAll, setRevealAll] = useState(false);
   const [userPos, setUserPos] = useState<[number, number]>();
@@ -108,19 +113,19 @@ export default function App() {
   }
 
   const typeOk = (p: Place) => typeFilter === 'all' || workById.get(p.workId)!.type === typeFilter;
+  const countryOk = (p: Place) => country === 'all' || countryOf(p) === country;
+  const workOk = (w: Work) => (typeFilter === 'all' || w.type === typeFilter) && (country === 'all' || workCountries(w.id).has(country));
   const searching = route.name === 'home' && query.trim() !== '';
 
   // ───────── 지도에 올릴 장소 ─────────
-  const { mapItems, routeLine, fitKey } = useMemo(() => {
+  const { mapItems, fitKey } = useMemo(() => {
     const item = (p: Place, num?: number): MapPlace => ({ place: p, type: workById.get(p.workId)!.type, num });
     const vis = (list: Place[]) => partition(list, progress, revealAll).visible.map((v) => v.place);
     let items: MapPlace[] = [];
-    let line: [number, number][] | undefined;
     if (route.name === 'work' || route.name === 'place') {
       const wid = route.name === 'work' ? route.id : placeById.get(route.id)!.workId;
       const list = vis(placesOf(wid));
       items = list.map((p, i) => item(p, list.length > 1 ? i + 1 : undefined));
-      if (list.length > 1) line = list.map((p) => [p.lat, p.lng]);
     } else if (route.name === 'near') {
       const o = origin ?? SEOUL;
       items = vis(places.filter(typeOk)).filter((p) => distanceKm(o[0], o[1], p.lat, p.lng) <= radius).map((p) => item(p));
@@ -129,12 +134,12 @@ export default function App() {
       const merged = new Map([...vis(places.filter((p) => ids.has(p.workId))), ...searchPlaces(query, places, progress, revealAll)].map((p) => [p.id, p]));
       items = [...merged.values()].filter(typeOk).map((p) => item(p));
     } else {
-      items = vis(places.filter(typeOk)).map((p) => item(p));
+      items = vis(places.filter((p) => typeOk(p) && countryOk(p))).map((p) => item(p));
     }
     const key = `${route.name}|${route.name === 'work' ? route.id : route.name === 'place' ? placeById.get(route.id)!.workId : ''}|${items.map((i) => i.place.id).join(',')}|${route.name === 'near' ? origin : ''}`;
-    return { mapItems: items, routeLine: line, fitKey: key };
+    return { mapItems: items, fitKey: key };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, query, typeFilter, progress, revealAll, origin, radius]);
+  }, [route, query, typeFilter, country, progress, revealAll, origin, radius]);
 
   const selectedId = route.name === 'place' ? route.id : undefined;
 
@@ -246,7 +251,7 @@ export default function App() {
     const w = workById.get(p.workId)!;
     const vis = visOf(p) as Exclude<Visibility, 'hidden'>;
     const pe = placeExtra(p.id);
-    const links = directionLinks(tr(p.name, 'ko'), p.lat, p.lng);
+    const links = directionLinks(countryOf(p) === 'JP' ? tr(p.name, 'ja') : tr(p.name, 'ko'), p.lat, p.lng, countryOf(p));
     const list = partition(placesOf(w.id), progress, revealAll).visible.map((v) => v.place);
     const idx = list.findIndex((x) => x.id === p.id);
     header = <div className="sheet-head">{backBtn()}<span className="head-title">{tr(p.name, lang)}</span><button className="iconbtn" aria-label={t('share', lang)} onClick={() => share(tr(p.name, lang))}><ShareIcon /></button></div>;
@@ -263,7 +268,9 @@ export default function App() {
           {list.length > 1 && <span className="muted small">{idx + 1} / {list.length}</span>}
         </div>
         <h1 className="place-title">{tr(p.name, lang)}</h1>
-        {lang !== 'ko' && <p className="ko-name" lang="ko">{p.name.ko}</p>}
+        {countryOf(p) === 'JP'
+          ? lang !== 'ja' && p.name.ja && <p className="ko-name" lang="ja">{p.name.ja}</p>
+          : lang !== 'ko' && <p className="ko-name" lang="ko">{p.name.ko}</p>}
         <button className="work-link" onClick={() => go(`#/w/${w.id}`)}>
           <Cover work={w} lang={lang} size="sm" />
           <span className="grow">
@@ -273,20 +280,24 @@ export default function App() {
           <span className="chev">›</span>
         </button>
 
-        <div className="dir-row">
-          <a className="btn primary" href={links.kakao} target="_blank" rel="noopener"><span className="logo k">K</span>{t('kakao', lang)}</a>
-          <a className="btn" href={links.naver} target="_blank" rel="noopener"><span className="logo n">N</span>{t('naver', lang)}</a>
-          <a className="btn" href={links.google} target="_blank" rel="noopener"><span className="logo g">G</span>{t('google', lang)}</a>
+        <div className={`dir-row n${links.length}`}>
+          {links.map((l, i) => (
+            <a key={l.app} className={`btn ${i === 0 ? 'primary' : ''}`} href={l.url} target="_blank" rel="noopener">
+              <span className={`logo ${l.app}`}>{DIR_LOGO[l.app]}</span>{t(l.app, lang)}
+            </a>
+          ))}
         </div>
-        {lang !== 'ko' && <p className="hint">ⓘ {t('mapTip', lang)}</p>}
+        {countryOf(p) === 'JP' ? <p className="hint">ⓘ {t('mapTipJP', lang)}</p> : lang !== 'ko' && <p className="hint">ⓘ {t('mapTip', lang)}</p>}
 
         <div className="addr-row">
           <span className="grow">
             <span>{tr(p.address, lang)}</span>
-            {lang !== 'ko' && <small lang="ko">{p.address.ko}</small>}
+            {countryOf(p) === 'JP'
+              ? lang !== 'ja' && p.address.ja && <small lang="ja">{p.address.ja}</small>
+              : lang !== 'ko' && <small lang="ko">{p.address.ko}</small>}
             {origin && <small className="accent">{t('away', lang, { d: formatKm(distanceKm(origin[0], origin[1], p.lat, p.lng)) })}</small>}
           </span>
-          <button className="chip-btn" onClick={() => copy(p.address.ko, t('addrCopied', lang))}>{t('copyAddr', lang)}</button>
+          <button className="chip-btn" onClick={() => copy(countryOf(p) === 'JP' ? (p.address.ja ?? p.address.en) : p.address.ko, t('addrCopied', lang))}>{t('copyAddr', lang)}</button>
         </div>
 
         <p className="desc">{tr(p.descSafe, lang)}</p>
@@ -350,24 +361,32 @@ export default function App() {
       </div>
     );
   } else {
-    const shown = TYPES.filter((ty) => typeFilter === 'all' || typeFilter === ty);
+    const shelves = TYPES.map((ty) => ({ ty, list: works.filter((w) => w.type === ty && workOk(w)) })).filter((x) => x.list.length > 0);
+    const nPlaces = places.filter((p) => typeOk(p) && countryOk(p)).length;
     header = (
       <div className="sheet-head home">
         <span className="head-title">{t('browse', lang)}</span>
-        <span className="muted small">{t('works', lang)} {works.length} · {t('places', lang)} {places.length}</span>
+        <span className="muted small">{t('works', lang)} {works.filter(workOk).length} · {t('places', lang)} {nPlaces}</span>
       </div>
     );
     body = (
       <div className="view">
+        <div className="seg country" role="radiogroup" aria-label="country">
+          {(['all', ...COUNTRIES] as const).map((c) => (
+            <button key={c} role="radio" aria-checked={country === c} className={country === c ? 'on' : ''} onClick={() => setCountry(c)}>
+              {c === 'all' ? t('countryAll', lang) : <>{c === 'KR' ? '🇰🇷' : '🇯🇵'} {t(c, lang)}</>}
+            </button>
+          ))}
+        </div>
         <button className="near-cta" onClick={locate}>
           <span className="near-ico"><LocateIcon /></span>
           <span className="grow"><strong>{t('nearMe', lang)}</strong><small>{t('nearCta', lang)}</small></span>
           <span className="chev">›</span>
         </button>
-        {shown.map((ty) => (
+        {shelves.map(({ ty, list }) => (
           <section key={ty} className="shelf">
             <h3 className="sec"><TypeDot type={ty} />{t(ty, lang)}</h3>
-            <ul className={typeFilter === 'all' ? 'hscroll' : 'grid'}>{works.filter((w) => w.type === ty).map(workCard)}</ul>
+            <ul className={typeFilter === 'all' ? 'hscroll' : 'grid'}>{list.map(workCard)}</ul>
           </section>
         ))}
         <Sources lang={lang} />
@@ -385,7 +404,6 @@ export default function App() {
           items={mapItems}
           selectedId={selectedId}
           onSelect={(p) => go(`#/p/${p.id}`)}
-          route={routeLine}
           user={route.name === 'near' ? origin : userPos}
           radiusKm={route.name === 'near' ? radius : undefined}
           fitKey={fitKey}
@@ -476,6 +494,8 @@ function SpoilerReveal({ text, lang }: { text: string; lang: Lang }) {
     </button>
   );
 }
+
+const DIR_LOGO: Record<string, string> = { kakao: 'K', naver: 'N', google: 'G', apple: 'A' };
 
 function ShieldIcon({ off }: { off: boolean }) {
   return (

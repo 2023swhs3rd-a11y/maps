@@ -11,11 +11,18 @@ export function formatKm(km: number) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(km < 10 ? 1 : 0)} km`;
 }
 
-export function directionLinks(name: string, lat: number, lng: number) {
+export type DirApp = 'kakao' | 'naver' | 'google' | 'apple';
+
+/** 나라별 길찾기 앱. 카카오맵·네이버 지도는 일본 길찾기를 지원하지 않습니다. */
+export function directionLinks(name: string, lat: number, lng: number, country: 'KR' | 'JP' = 'KR'): { app: DirApp; url: string }[] {
   const n = encodeURIComponent(name);
-  return {
-    kakao: `https://map.kakao.com/link/to/${n},${lat},${lng}`,
-    naver: `https://map.naver.com/p/search/${n}?c=${lng},${lat},15,0,0,0,dh`,
-    google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-  };
+  const google = { app: 'google' as const, url: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` };
+  if (country === 'JP') {
+    return [google, { app: 'apple', url: `https://maps.apple.com/?daddr=${lat},${lng}&q=${n}` }];
+  }
+  return [
+    { app: 'kakao', url: `https://map.kakao.com/link/to/${n},${lat},${lng}` },
+    { app: 'naver', url: `https://map.naver.com/p/search/${n}?c=${lng},${lat},15,0,0,0,dh` },
+    google,
+  ];
 }

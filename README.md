@@ -13,7 +13,7 @@ npm run build    # production build (dist/)
 ```
 
 ## Structure
-- `src/data/works.ts`: works, plus their progress segments (episodes, or opening/development/climax/ending)
+- `src/data/works.ts`: works (Korea and Japan; types drama, film, anime, literature), plus their progress segments (episodes, or opening/development/climax/ending)
 - `src/data/places.ts`: places (coordinates, segment where each first appears, spoiler level, safe/full descriptions)
 - `src/lib/spoiler.ts`: spoiler visibility rules
 - `src/lib/search.ts`: search across all four languages plus Korean initial consonants (choseong); excludes hidden places and locked descriptions

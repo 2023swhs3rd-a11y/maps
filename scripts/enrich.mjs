@@ -53,14 +53,15 @@ function tmdb(path, params = {}) {
 }
 
 async function enrichWork(w) {
-  const kind = w.type === 'film' ? 'movie' : 'tv';
+  const kind = w.tmdb?.kind ?? (w.type === 'film' ? 'movie' : 'tv');
   let id = w.tmdb?.id;
   if (!id) {
-    const q = w.tmdb?.query ?? w.title.ko;
+    const origLang = w.country === 'JP' ? 'ja' : 'ko';
+    const q = w.tmdb?.query ?? (w.country === 'JP' ? w.title.ja ?? w.title.en : w.title.ko);
     const yearParam = kind === 'movie' ? { year: w.year } : { first_air_date_year: w.year };
     let r = await tmdb(`/search/${kind}`, { query: q, language: 'ko-KR', ...yearParam });
     if (!r.results?.length) r = await tmdb(`/search/${kind}`, { query: w.title.en.replace(/\s*\(.*\)$/, ''), language: 'ko-KR' });
-    const hit = r.results?.find((x) => x.original_language === 'ko') ?? r.results?.[0];
+    const hit = r.results?.find((x) => x.original_language === origLang) ?? r.results?.[0];
     if (!hit) { log(`- ⚠ TMDB: '${w.title.ko}' 검색 결과 없음 (works.ts에 tmdb.id 지정 필요)`); return undefined; }
     id = hit.id;
   }
@@ -161,7 +162,8 @@ async function main() {
 
   if (TOUR_KEY) {
     log('\n## TourAPI');
-    for (const p of places) {
+    // TourAPI는 한국 장소만 다룹니다
+    for (const p of places.filter((x) => (x.country ?? 'KR') === 'KR')) {
       try { const r = await enrichPlace(p); if (r) out.places[p.id] = r; else delete out.places[p.id]; }
       catch (e) { log(`- ✗ TourAPI: ${p.name.ko} — ${e.message}`); }
       await sleep(100);
@@ -171,7 +173,7 @@ async function main() {
   // 더 이상 없는 작품·장소 정리
   const wIds = new Set(works.map((w) => w.id)), pIds = new Set(places.map((p) => p.id));
   for (const k of Object.keys(out.works)) if (!wIds.has(k)) delete out.works[k];
-  for (const k of Object.keys(out.places)) if (!pIds.has(k)) delete out.places[k];
+  for (const k of Object.keys(out.places)) if (!pIds.has(k) || places.find((p) => p.id === k)?.country === 'JP') delete out.places[k];
 
   if (TMDB_TOKEN || TMDB_API_KEY || TOUR_KEY) {
     await writeFile(OUT, JSON.stringify(out, null, 1) + '\n');

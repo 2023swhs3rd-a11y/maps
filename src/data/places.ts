@@ -314,5 +314,51 @@ export const places: Place[] = [
     lat: 36.9640, lng: 126.7360, appearsAt: 0, spoiler: 0,
     descSafe: { ko: '작가가 직접 지은 집으로, 이곳에서 「상록수」를 썼습니다. 옆에 심훈기념관이 있습니다.', en: 'The house the author built himself, where he wrote "Evergreen"; the Shim Hoon Memorial Hall is next door.', ja: '作家自ら建てた家で、ここで『常緑樹』を執筆。隣に沈熏記念館。', zh: '作家亲手建造的房子，《常绿树》即在此写成，旁边有沈熏纪念馆。' },
   },
+  // ───────── 일본 (시범) ─────────
+  {
+    id: 'yourname-hida', workId: 'your-name', country: 'JP', kind: 'filming', verified: false,
+    name: { ko: '히다후루카와역', en: 'Hida-Furukawa Station', ja: '飛騨古川駅', zh: '飞驒古川站' },
+    address: { ko: '기후현 히다시 후루카와초', en: 'Furukawa-cho, Hida, Gifu', ja: '岐阜県飛騨市古川町', zh: '岐阜县飞驒市古川町' },
+    lat: 36.2380, lng: 137.1866, appearsAt: 1, spoiler: 1,
+    descSafe: { ko: '작품 속 풍경의 모델이 된 산골 마을의 역. 역 육교에서 보는 풍경이 유명합니다.', en: 'A mountain-town station that served as a model for scenes in the film; the view from its footbridge is famous.', ja: '作品の風景のモデルとなった山あいの町の駅。跨線橋からの眺めが有名。', zh: '作品中场景原型的山间小镇车站，从天桥上眺望的景色很有名。' },
+    descFull: { ko: '주인공이 기억을 더듬어 찾아온 마을에서 처음 내리는 역으로 등장합니다.', en: 'Where the protagonist first gets off the train when he comes searching for the town from his memories.', ja: '主人公が記憶を頼りに町を探しに来て、最初に降り立つ駅として登場。', zh: '主人公凭记忆寻找小镇时最先下车的车站。' },
+  },
+  {
+    id: 'yourname-suga', workId: 'your-name', country: 'JP', kind: 'filming', verified: false,
+    name: { ko: '스가 신사 계단', en: 'Suga Shrine Stairs', ja: '須賀神社の階段', zh: '须贺神社阶梯' },
+    address: { ko: '도쿄도 신주쿠구 스가초', en: 'Sugacho, Shinjuku, Tokyo', ja: '東京都新宿区須賀町', zh: '东京都新宿区须贺町' },
+    lat: 35.6857, lng: 139.7212, appearsAt: 3, spoiler: 2,
+    descSafe: { ko: '작품 결말부에 나오는 도쿄의 계단.', en: 'A Tokyo stairway that appears near the end of the film.', ja: '作品の結末部に登場する東京の階段。', zh: '影片结尾出现的东京阶梯。' },
+    descFull: { ko: '오랜 시간이 흐른 뒤 두 주인공이 계단에서 엇갈리다 마침내 서로를 알아보는 마지막 장면의 무대.', en: 'Years later, the two leads pass each other on these stairs and finally recognize one another — the final scene.', ja: '長い時を経て、二人がこの階段ですれ違い、ついに互いに気づくラストシーンの舞台。', zh: '多年后两位主角在阶梯上擦肩而过、终于认出彼此的最后一幕。' },
+  },
+  {
+    id: 'slamdunk-crossing', workId: 'slam-dunk', country: 'JP', kind: 'setting', verified: false,
+    name: { ko: '가마쿠라고교마에역 건널목', en: 'Kamakura-Kōkōmae Station Crossing', ja: '鎌倉高校前駅の踏切', zh: '镰仓高校前站道口' },
+    address: { ko: '가나가와현 가마쿠라시 고시고에', en: 'Koshigoe, Kamakura, Kanagawa', ja: '神奈川県鎌倉市腰越', zh: '神奈川县镰仓市腰越' },
+    lat: 35.3066, lng: 139.5004, appearsAt: 0, spoiler: 0,
+    descSafe: { ko: '바다를 배경으로 에노덴 열차가 지나가는 건널목. 애니메이션 오프닝으로 유명해졌습니다. 주민 생활 공간이니 차도에 서지 마세요.', en: 'The level crossing where the Enoden train passes with the sea behind — made famous by the anime\'s opening. It\'s a residential area; please don\'t stand in the road.', ja: '海を背に江ノ電が通る踏切。アニメのオープニングで有名に。生活道路なので車道に立ち止まらないで。', zh: '以大海为背景、江之电列车驶过的道口，因动画片头而闻名。这里是居民生活区，请勿站在车道上。' },
+  },
+  {
+    id: 'loveletter-otaru', workId: 'love-letter', country: 'JP', kind: 'filming', verified: false,
+    name: { ko: '오타루 운하 일대', en: 'Otaru Canal area', ja: '小樽運河周辺', zh: '小樽运河一带' },
+    address: { ko: '홋카이도 오타루시', en: 'Otaru, Hokkaido', ja: '北海道小樽市', zh: '北海道小樽市' },
+    lat: 43.1990, lng: 141.0030, appearsAt: 0, spoiler: 0,
+    descSafe: { ko: '영화의 주요 촬영지인 눈 덮인 항구 도시. 오래된 석조 창고와 거리가 남아 있습니다.', en: 'The snowy port town where much of the film was shot, with old stone warehouses and streets.', ja: '映画の主なロケ地となった雪の港町。古い石造倉庫や街並みが残る。', zh: '电影主要取景地、白雪覆盖的港口城市，保留着古老的石造仓库与街道。' },
+  },
+  {
+    id: 'snowcountry-yuzawa', workId: 'snow-country', country: 'JP', kind: 'memorial', verified: false,
+    name: { ko: '에치고유자와 · 다카한 료칸', en: 'Echigo-Yuzawa & Takahan Ryokan', ja: '越後湯沢・雪国の宿 高半', zh: '越后汤泽・高半旅馆' },
+    address: { ko: '니가타현 미나미우오누마군 유자와마치', en: 'Yuzawa, Minamiuonuma District, Niigata', ja: '新潟県南魚沼郡湯沢町', zh: '新潟县南鱼沼郡汤泽町' },
+    lat: 36.9277, lng: 138.8086, appearsAt: 0, spoiler: 0,
+    descSafe: { ko: '작가가 머물며 소설을 쓴 온천 료칸. 작가가 묵었던 방이 보존돼 있습니다.', en: 'The hot-spring inn where the author stayed while writing the novel; his room is preserved.', ja: '作家が滞在して執筆した温泉旅館。作家が泊まった部屋が保存されている。', zh: '作家下榻并写作此书的温泉旅馆，至今保留着作家住过的房间。' },
+  },
+  {
+    id: 'botchan-dogo', workId: 'botchan', country: 'JP', kind: 'setting', verified: false,
+    name: { ko: '도고온천 본관', en: 'Dōgo Onsen Honkan', ja: '道後温泉本館', zh: '道后温泉本馆' },
+    address: { ko: '에히메현 마쓰야마시 도고유노마치', en: 'Dogoyunomachi, Matsuyama, Ehime', ja: '愛媛県松山市道後湯之町', zh: '爱媛县松山市道后汤之町' },
+    lat: 33.8521, lng: 132.7863, appearsAt: 1, spoiler: 0,
+    descSafe: { ko: '주인공이 즐겨 찾던 온천으로 등장하는 일본에서 가장 오래된 온천 중 하나. 근처에 \'도련님 열차\'가 다닙니다.', en: 'One of Japan\'s oldest hot springs, which the hero frequents in the novel; the "Botchan Train" runs nearby.', ja: '主人公が通う温泉として登場する日本最古級の温泉。近くを「坊っちゃん列車」が走る。', zh: '日本最古老的温泉之一，小说中主角常去之处，附近有"哥儿列车"。' },
+  },
 ];
+
 

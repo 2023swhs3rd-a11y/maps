@@ -4,7 +4,11 @@ export const LANGS: Lang[] = ['ko', 'en', 'ja', 'zh'];
 /** 다국어 문자열. ko·en은 필수, ja·zh가 없으면 en으로 대체합니다. */
 export type L10n = { ko: string; en: string; ja?: string; zh?: string };
 
-export type WorkType = 'drama' | 'film' | 'literature';
+export type WorkType = 'drama' | 'film' | 'anime' | 'literature';
+
+/** 나라 코드. 길찾기 앱·데이터 출처가 나라마다 다릅니다. */
+export type Country = 'KR' | 'JP';
+export const COUNTRIES: Country[] = ['KR', 'JP'];
 
 /**
  * 스포일러 등급
@@ -26,8 +30,10 @@ export interface Work {
   segments: L10n[];
   /** 스포일러 없는 한두 문장 소개. 영화·드라마는 TMDB 줄거리가 있으면 그것을 우선 씁니다. */
   summary?: L10n;
+  /** 작품이 만들어진 나라(TMDB 검색 언어). 기본값 KR */
+  country?: Country;
   /** TMDB 검색 힌트. 생략하면 한국어 제목과 연도로 찾습니다. id를 알면 바로 지정합니다. */
-  tmdb?: { id?: number; query?: string };
+  tmdb?: { id?: number; query?: string; kind?: 'movie' | 'tv' };
 }
 
 export interface Place {
@@ -48,6 +54,8 @@ export interface Place {
   kind: 'filming' | 'setting' | 'memorial';
   /** 좌표·사실관계를 검수했는지 여부 */
   verified: boolean;
+  /** 장소가 있는 나라. 기본값 KR */
+  country?: Country;
   /** TourAPI 검색어(생략하면 장소 이름). 공식 관광지 이름과 다를 때 지정합니다. */
   tourKeyword?: string;
 }

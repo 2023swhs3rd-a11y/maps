@@ -219,5 +219,47 @@ export const works: Work[] = [
     segments: acts,
     summary: { ko: '1930년대 농촌계몽운동에 뛰어든 두 젊은이의 이야기.', en: 'Two young people who throw themselves into the 1930s rural enlightenment movement.', ja: '1930年代の農村啓蒙運動に身を投じた二人の若者の物語。', zh: '投身1930年代农村启蒙运动的两位年轻人的故事。' },
   },
+  // ───────── 일본 (시범) ─────────
+  {
+    id: 'your-name', type: 'anime', year: 2016, country: 'JP',
+    title: { ko: '너의 이름은.', en: 'Your Name.', ja: '君の名は。', zh: '你的名字。' },
+    aliases: ['너의 이름은', 'Kimi no Na wa', '君の名は', '신카이 마코토', 'Shinkai'],
+    creator: { ko: '신카이 마코토 감독', en: 'Dir. Makoto Shinkai', ja: '監督 新海誠', zh: '导演 新海诚' },
+    segments: acts,
+    tmdb: { query: '君の名は。', kind: 'movie' },
+  },
+  {
+    id: 'slam-dunk', type: 'anime', year: 1993, country: 'JP',
+    title: { ko: '슬램덩크', en: 'Slam Dunk', ja: 'SLAM DUNK', zh: '灌篮高手' },
+    aliases: ['Slam Dunk', 'スラムダンク', '이노우에 다케히코', 'Inoue'],
+    creator: { ko: '이노우에 다케히코 원작', en: 'Original by Takehiko Inoue', ja: '原作 井上雄彦', zh: '原作 井上雄彦' },
+    segments: acts,
+    tmdb: { query: 'SLAM DUNK' },
+  },
+  {
+    id: 'love-letter', type: 'film', year: 1995, country: 'JP',
+    title: { ko: '러브레터', en: 'Love Letter', ja: 'Love Letter', zh: '情书' },
+    aliases: ['Love Letter', 'ラブレター', '이와이 슌지', 'Iwai'],
+    creator: { ko: '이와이 슌지 감독', en: 'Dir. Shunji Iwai', ja: '監督 岩井俊二', zh: '导演 岩井俊二' },
+    segments: acts,
+    tmdb: { query: 'Love Letter' },
+  },
+  {
+    id: 'snow-country', type: 'literature', year: 1937, country: 'JP',
+    title: { ko: '설국', en: 'Snow Country', ja: '雪国', zh: '雪国' },
+    aliases: ['Yukiguni', '가와바타 야스나리', 'Kawabata'],
+    creator: { ko: '가와바타 야스나리', en: 'Yasunari Kawabata', ja: '川端康成', zh: '川端康成' },
+    segments: acts,
+    summary: { ko: '"국경의 긴 터널을 빠져나오자 설국이었다." 눈 덮인 온천 마을에서 만난 남녀의 이야기.', en: '"The train came out of the long tunnel into the snow country." A man and a woman in a snowbound hot-spring town.', ja: '「国境の長いトンネルを抜けると雪国であった。」雪深い温泉町で出会う男女の物語。', zh: '"穿过县界长长的隧道，便是雪国。"雪乡温泉小镇里一对男女的故事。' },
+  },
+  {
+    id: 'botchan', type: 'literature', year: 1906, country: 'JP',
+    title: { ko: '도련님', en: 'Botchan', ja: '坊っちゃん', zh: '哥儿' },
+    aliases: ['Botchan', '나쓰메 소세키', 'Natsume Soseki'],
+    creator: { ko: '나쓰메 소세키', en: 'Natsume Sōseki', ja: '夏目漱石', zh: '夏目漱石' },
+    segments: acts,
+    summary: { ko: '도쿄 출신의 고지식한 청년이 시코쿠 마쓰야마의 중학교에 교사로 부임해 겪는 소동.', en: 'A blunt young Tokyoite takes a teaching post at a middle school in Matsuyama, Shikoku, and trouble follows.', ja: '江戸っ子の青年が四国・松山の中学校に赴任して巻き起こす騒動。', zh: '耿直的东京青年到四国松山的中学任教，引发一连串风波。' },
+  },
 ];
+
 

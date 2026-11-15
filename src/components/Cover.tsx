@@ -7,6 +7,7 @@ import { workExtra, pick, tmdbImg } from '../data/enrich';
 const PALETTES: Record<Work['type'], [string, string][]> = {
   drama: [['#ff8a3d', '#c2255c'], ['#f76707', '#862e9c'], ['#ffa94d', '#e8590c'], ['#ff6b6b', '#c92a2a']],
   film: [['#4263eb', '#1b1f3b'], ['#364fc7', '#0b7285'], ['#5c7cfa', '#3b0a45'], ['#1c7ed6', '#212529']],
+  anime: [['#f06595', '#7048e8'], ['#e64980', '#1971c2'], ['#cc5de8', '#f76707'], ['#ff8787', '#5f3dc4']],
   literature: [['#37b24d', '#0b7285'], ['#2f9e44', '#5c940d'], ['#20c997', '#1864ab'], ['#94d82d', '#2b8a3e']],
 };
 

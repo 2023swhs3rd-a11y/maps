@@ -6,6 +6,7 @@ import { tr } from '../i18n';
 export const TYPE_COLOR: Record<WorkType, string> = {
   drama: '#e8590c',
   film: '#3b5bdb',
+  anime: '#c2255c',
   literature: '#2f9e44',
 };
 
@@ -13,6 +14,7 @@ export const TYPE_COLOR: Record<WorkType, string> = {
 export const GLYPH: Record<WorkType, string> = {
   drama: '<rect x="7" y="7.5" width="10" height="7" rx="1.2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M10 17h4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
   film: '<rect x="7" y="7" width="10" height="9" rx="1.2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M10.5 9.6v3.8l3.2-1.9z" fill="#fff"/>',
+  anime: '<path d="M12 6.8l1.5 3.7 3.7 1.5-3.7 1.5L12 17.2l-1.5-3.7L6.8 12l3.7-1.5z" fill="#fff"/>',
   literature: '<path d="M12 9c-1.5-1.1-3.2-1.4-5-1.2v7.6c1.8-.2 3.5.1 5 1.2 1.5-1.1 3.2-1.4 5-1.2V7.8c-1.8-.2-3.5.1-5 1.2zM12 9v7.6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>',
 };
 
@@ -78,7 +80,6 @@ interface Props {
   items: MapPlace[];
   selectedId?: string;
   onSelect: (p: Place) => void;
-  route?: [number, number][];
   user?: [number, number];
   radiusKm?: number;
   fitKey: string;
@@ -90,7 +91,7 @@ interface Props {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 export function MapView(props: Props) {
-  const { items, selectedId, onSelect, route, user, radiusKm, lang, fitKey } = props;
+  const { items, selectedId, onSelect, user, radiusKm, lang, fitKey } = props;
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap>();
   const markers = useRef(new Map<string, maplibregl.Marker>());
@@ -127,26 +128,17 @@ export function MapView(props: Props) {
     if (map && ready) applyLanguage(map, lang);
   }, [lang, ready]);
 
-  // ── 경로선·반경 레이어 (스타일이 바뀌면 다시 추가) ──
+  // ── 반경 레이어 (스타일이 바뀌면 다시 추가) ──
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    if (!map.getSource('route')) {
-      map.addSource('route', { type: 'geojson', data: EMPTY });
-      map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#212529', 'line-width': 3, 'line-dasharray': [0.5, 2.5], 'line-opacity': 0.85 } });
-    }
     if (!map.getSource('radius')) {
       map.addSource('radius', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'radius-fill', type: 'fill', source: 'radius', paint: { 'fill-color': '#4c6ef5', 'fill-opacity': 0.07 } });
       map.addLayer({ id: 'radius-line', type: 'line', source: 'radius', paint: { 'line-color': '#4c6ef5', 'line-width': 1.2, 'line-opacity': 0.6 } });
     }
-    (map.getSource('route') as maplibregl.GeoJSONSource).setData(
-      route && route.length > 1
-        ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.map(([la, ln]) => [ln, la]) } }
-        : EMPTY,
-    );
     (map.getSource('radius') as maplibregl.GeoJSONSource).setData(user && radiusKm ? circle(user, radiusKm) : EMPTY);
-  }, [ready, route, user, radiusKm]);
+  }, [ready, user, radiusKm]);
 
   // ── 장소 마커 ──
   useEffect(() => {
