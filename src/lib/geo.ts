@@ -1,0 +1,21 @@
+export function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+export function formatKm(km: number) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(km < 10 ? 1 : 0)} km`;
+}
+
+export function directionLinks(name: string, lat: number, lng: number) {
+  const n = encodeURIComponent(name);
+  return {
+    kakao: `https://map.kakao.com/link/to/${n},${lat},${lng}`,
+    naver: `https://map.naver.com/p/search/${n}?c=${lng},${lat},15,0,0,0,dh`,
+    google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+  };
+}

@@ -1,0 +1,47 @@
+export type Lang = 'ko' | 'en' | 'ja' | 'zh';
+export const LANGS: Lang[] = ['ko', 'en', 'ja', 'zh'];
+
+/** 다국어 문자열. ko·en은 필수, ja·zh가 없으면 en으로 대체합니다. */
+export type L10n = { ko: string; en: string; ja?: string; zh?: string };
+
+export type WorkType = 'drama' | 'film' | 'literature';
+
+/**
+ * 스포일러 등급
+ * 0: 안전. 홍보물·예고편 수준이라 진행도와 상관없이 늘 공개합니다.
+ * 1: 경미. 장소는 공개하지만 상세 설명은 해당 지점까지 봐야 공개합니다.
+ * 2: 핵심. 반전·결말과 관련되어 해당 지점까지 보기 전에는 장소 자체를 숨깁니다(검색 불가).
+ */
+export type SpoilerLevel = 0 | 1 | 2;
+
+export interface Work {
+  id: string;
+  type: WorkType;
+  title: L10n;
+  /** 검색용 별칭(원제 로마자, 약칭 등) */
+  aliases?: string[];
+  year: number;
+  creator: L10n; // 작가 또는 감독
+  /** 진행 구간. 드라마는 '1화'…, 영화·소설은 '도입/전개/절정/결말' */
+  segments: L10n[];
+}
+
+export interface Place {
+  id: string;
+  workId: string;
+  name: L10n;
+  address: L10n;
+  lat: number;
+  lng: number;
+  /** segments 배열의 인덱스. 이 구간에서 처음 등장합니다. */
+  appearsAt: number;
+  spoiler: SpoilerLevel;
+  /** 스포일러 없는 설명 */
+  descSafe: L10n;
+  /** 스포일러가 포함될 수 있는 상세 설명 */
+  descFull?: L10n;
+  /** 'filming': 촬영지, 'setting': 작품 속 배경지, 'memorial': 기념관·문학관 */
+  kind: 'filming' | 'setting' | 'memorial';
+  /** 좌표·사실관계를 검수했는지 여부 */
+  verified: boolean;
+}
