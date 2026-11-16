@@ -52,10 +52,12 @@ WHERE {
 // ───────── 작품 유형 분류 ─────────
 const T = {
   anime: ['Q20650540', 'Q202866', 'Q63952888', 'Q1107', 'Q21198342', 'Q1004', 'Q220898', 'Q100269041', 'Q581714'],
-  drama: ['Q5398426', 'Q15416', 'Q21191270', 'Q1366112', 'Q526877', 'Q1259759', 'Q117467246', 'Q24856'],
+  drama: ['Q5398426', 'Q21191270', 'Q1366112', 'Q526877', 'Q1259759', 'Q117467246'],
   film: ['Q11424', 'Q24862', 'Q506240', 'Q229390', 'Q93204'],
   literature: ['Q7725634', 'Q8261', 'Q49084', 'Q47461344', 'Q571', 'Q5185279', 'Q1279564', 'Q12106333', 'Q482', 'Q37484', 'Q725377'],
 };
+// 관광지로 안내하면 안 되는 장소(출입 금지·철거된 폐건물 등)
+const EXCLUDE_LOCS = new Set(['Q18880552']);
 const EXCLUDE = ['Q7889', 'Q4393107', 'Q482994', 'Q134556', 'Q105543609', 'Q7366', 'Q2031291', 'Q838795'];
 function classify(types) {
   if (types.some((t) => EXCLUDE.includes(t)) && !types.some((t) => [...T.film, ...T.drama, ...T.anime, ...T.literature].includes(t))) return undefined;
@@ -65,18 +67,26 @@ function classify(types) {
 
 // ───────── 2. 행정구역·넓은 지역 걸러내기 ─────────
 async function adminSet(locs) {
-  const out = new Set();
-  for (let i = 0; i < locs.length; i += 30) {
-    const vals = locs.slice(i, i + 30).map((x) => `wd:${x}`).join(' ');
-    const q = `SELECT DISTINCT ?l WHERE { VALUES ?l { ${vals} }
-      { ?l wdt:P31/wdt:P279* wd:Q56061 } UNION { ?l wdt:P31/wdt:P279* wd:Q6256 }
-      UNION { ?l wdt:P31/wdt:P279* wd:Q82794 } UNION { ?l wdt:P31/wdt:P279* wd:Q515 } }`;
-    for (const b of await sparql(q)) out.add(qid(b.l.value));
-    process.stdout.write('.');
-    await sleep(500);
+  // 장소마다 하위 분류를 끝까지 따라가면 느리므로,
+  // (1) 장소의 유형(P31)을 모은 뒤 (2) 그 유형들만 행정구역·나라·지역·도시의 하위 분류인지 한 번에 확인합니다.
+  const typesOf = new Map();
+  for (let i = 0; i < locs.length; i += 150) {
+    const vals = locs.slice(i, i + 150).map((x) => `wd:${x}`).join(' ');
+    for (const b of await sparql(`SELECT ?l ?t WHERE { VALUES ?l { ${vals} } ?l wdt:P31 ?t }`)) {
+      const l = qid(b.l.value);
+      typesOf.set(l, [...(typesOf.get(l) ?? []), qid(b.t.value)]);
+    }
   }
-  console.log();
-  return out;
+  const classes = [...new Set([...typesOf.values()].flat())];
+  const bad = new Set();
+  for (let i = 0; i < classes.length; i += 80) {
+    const vals = classes.slice(i, i + 80).map((x) => `wd:${x}`).join(' ');
+    const q = `SELECT DISTINCT ?t WHERE { VALUES ?t { ${vals} } VALUES ?root { wd:Q56061 wd:Q6256 wd:Q82794 wd:Q515 wd:Q486972 wd:Q3895768 wd:Q11514315 wd:Q186081 wd:Q14897293 }
+      ?t wdt:P279* ?root }`;
+    for (const b of await sparql(q)) bad.add(qid(b.t.value));
+    await sleep(300);
+  }
+  return new Set(locs.filter((l) => !typesOf.has(l) || (typesOf.get(l) ?? []).some((t) => bad.has(t))));
 }
 
 // ───────── 3. 라벨·제작자·주소 ─────────
@@ -114,7 +124,8 @@ async function main() {
   for (const b of rows) {
     const type = classify(b.wtypes.value ? b.wtypes.value.split(',') : []);
     const pt = parsePoint(b.coord.value);
-    if (!type || !pt) continue;
+    // 너무 알려지지 않은 작품은 제외(위키백과 언어판 3개 미만)
+    if (!type || !pt || Number(b.links.value) < 3) continue;
     pairs.push({
       work: qid(b.work.value), wc: qid(b.wc.value) === 'Q17' ? 'JP' : 'KR', type,
       kind: qid(b.prop.value) === 'P915' ? 'filming' : 'setting',
@@ -125,7 +136,7 @@ async function main() {
   const locIds = [...new Set(pairs.map((p) => p.loc))];
   console.log(`2) 장소 ${locIds.length}곳 중 행정구역 걸러내기…`);
   const admin = await adminSet(locIds);
-  const specific = pairs.filter((p) => !admin.has(p.loc));
+  const specific = pairs.filter((p) => !admin.has(p.loc) && !EXCLUDE_LOCS.has(p.loc));
   console.log(`   구체적인 장소 쌍 ${specific.length}건`);
 
   console.log('3) 라벨·제작자 조회…');
@@ -169,8 +180,8 @@ async function main() {
   for (const p of specific) {
     const w = works[p.work];
     const name = labels(ents[p.loc]);
-    if (!w || !name) continue;
     const a1 = claimIds(ents[p.loc], 'P131')[0];
+    if (!w || !name || !a1) continue; // 주소를 알 수 없는 장소(가상 장소 등) 제외
     const a2 = a1 && claimIds(area(a1), 'P131')[0];
     const L1 = a1 && labels(area(a1)), L2 = a2 && labels(area(a2));
     const join = (k, sep) => [L2?.[k] ?? L2?.en, L1?.[k] ?? L1?.en].filter(Boolean).join(sep);

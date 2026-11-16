@@ -160,7 +160,10 @@ export function MapView(props: Props) {
       }
       const node = m.getElement();
       if (node.dataset.html !== html) { node.innerHTML = html; node.dataset.html = html; }
-      node.className = `pin pin-${state}`;
+      // MapLibre가 붙인 maplibregl-marker 클래스(절대 위치)는 지우지 않고 우리 클래스만 바꿉니다
+      node.classList.add('pin');
+      node.classList.remove('pin-normal', 'pin-selected', 'pin-dim');
+      node.classList.add(`pin-${state}`);
       node.setAttribute('aria-label', tr(place.name, lang));
       node.style.zIndex = state === 'selected' ? '3' : state === 'normal' ? '2' : '1';
     }

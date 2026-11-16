@@ -22,7 +22,7 @@ export function Cover({ work, lang, size = 'md' }: { work: Work; lang: Lang; siz
   const pal = PALETTES[work.type];
   const [a, b] = pal[hash(work.id) % pal.length];
   const angle = 120 + (hash(work.id + 'x') % 90);
-  const title = tr(work.title, 'ko').replace(/^.*-\s*/, ''); // 부제 제거(도깨비 등)
+  const title = tr(work.title, 'ko').replace(/^.*\s-\s+/, ''); // 부제 제거(도깨비 등)
   const poster = tmdbImg(pick(workExtra(work.id)?.poster, lang), size === 'sm' ? 'w92' : size === 'lg' ? 'w342' : 'w185');
   if (poster) {
     return (

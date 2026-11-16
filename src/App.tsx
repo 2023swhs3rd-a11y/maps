@@ -180,7 +180,7 @@ export default function App() {
       <li key={w.id}>
         <button className="wcard" onClick={() => go(`#/w/${w.id}`)}>
           <Cover work={w} lang={lang} />
-          <strong>{tr(w.title, lang).replace(/\s*\(.*\)$/, '').replace(/^.*-\s*/, '')}</strong>
+          <strong>{tr(w.title, lang).replace(/\s*\(.*\)$/, '').replace(/^.*\s-\s+/, '')}</strong>
           <small>{t('placesN', lang, { n })}{n > 1 && <span className="tag-multi">{t('multi', lang)}</span>}</small>
         </button>
       </li>

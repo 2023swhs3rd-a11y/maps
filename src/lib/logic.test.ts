@@ -4,6 +4,7 @@ import { works } from '../data/works';
 import { visibilityOf } from './spoiler';
 import { searchPlaces, searchWorks, toChoseong } from './search';
 import { directionLinks } from './geo';
+import * as merged from '../data/index';
 
 const jecheon = places.find((p) => p.id === 'buckwheat-jecheon')!;
 const stairs = places.find((p) => p.id === 'parasite-stairs')!;
@@ -68,5 +69,23 @@ describe('데이터 무결성', () => {
       expect(p.lat, p.id).toBeGreaterThan(la0); expect(p.lat, p.id).toBeLessThan(la1);
       expect(p.lng, p.id).toBeGreaterThan(ln0); expect(p.lng, p.id).toBeLessThan(ln1);
     }
+  });
+});
+
+describe('합친 데이터(직접 정리 + 위키데이터)', () => {
+  it('ID 중복이 없고 모든 장소가 실제 작품을 가리킴', () => {
+    const wIds = merged.works.map((w) => w.id), pIds = merged.places.map((p) => p.id);
+    expect(new Set(wIds).size).toBe(wIds.length);
+    expect(new Set(pIds).size).toBe(pIds.length);
+    const ws = new Set(wIds);
+    for (const p of merged.places) expect(ws.has(p.workId), p.id).toBe(true);
+  });
+  it('장소가 없는 작품이 없음', () => {
+    const used = new Set(merged.places.map((p) => p.workId));
+    for (const w of merged.works) expect(used.has(w.id), w.id).toBe(true);
+  });
+  it('합계 출력', () => {
+    const c = (k: 'KR' | 'JP') => merged.places.filter((p) => (p.country ?? 'KR') === k).length;
+    console.log(`작품 ${merged.works.length}편 · 장소 ${merged.places.length}곳 (한국 ${c('KR')}, 일본 ${c('JP')}) · 위키데이터 작품 ${merged.wikidataCounts.works}, 장소 ${merged.wikidataCounts.places}`);
   });
 });
