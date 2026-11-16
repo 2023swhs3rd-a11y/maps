@@ -34,6 +34,11 @@ export interface Work {
   country?: Country;
   /** TMDB 검색 힌트. 생략하면 한국어 제목과 연도로 찾습니다. id를 알면 바로 지정합니다. */
   tmdb?: { id?: number; query?: string; kind?: 'movie' | 'tv' };
+  /** 자동으로 가져온 데이터의 출처 */
+  source?: 'wikidata';
+  qid?: string;
+  /** 인기도(위키백과 언어판 수). 목록 정렬에 씁니다. */
+  popularity?: number;
 }
 
 export interface Place {
@@ -56,6 +61,8 @@ export interface Place {
   verified: boolean;
   /** 장소가 있는 나라. 기본값 KR */
   country?: Country;
+  source?: 'wikidata';
+  qid?: string;
   /** TourAPI 검색어(생략하면 장소 이름). 공식 관광지 이름과 다를 때 지정합니다. */
   tourKeyword?: string;
 }

@@ -84,6 +84,9 @@ const S = {
   srcStreaming: { ko: '스트리밍', en: 'Streaming', ja: '配信', zh: '流媒体' },
   srcPlaces: { ko: '장소 사진·위치', en: 'Place photos & locations', ja: '場所の写真・位置', zh: '地点照片・位置' },
   kto: { ko: '한국관광공사', en: 'Korea Tourism Organization', ja: '韓国観光公社', zh: '韩国观光公社' },
+  seeAll: { ko: '전체 보기', en: 'See all', ja: 'すべて見る', zh: '查看全部' },
+  fromWikidata: { ko: '위키데이터에서 가져온 장소 · 장면 정보는 아직 없어요', en: 'Imported from Wikidata · no scene details yet', ja: 'ウィキデータから取得・場面情報は未登録', zh: '来自维基数据 · 暂无场景信息' },
+  srcWikidata: { ko: '작품·장소 목록 일부', en: 'Part of titles & places', ja: '作品・場所リストの一部', zh: '部分作品与地点列表' },
   language: { ko: '언어', en: 'Language', ja: '言語', zh: '语言' },
 } satisfies Record<string, Full>;
 

@@ -15,6 +15,9 @@
 import { readFile, writeFile, appendFile } from 'node:fs/promises';
 import { works } from '../src/data/works.ts';
 import { places } from '../src/data/places.ts';
+// 위키데이터 작품·장소도 보강 대상에 포함합니다
+import { readFileSync } from 'node:fs';
+const wd = (() => { try { return JSON.parse(readFileSync(new URL('../src/data/wikidata.json', import.meta.url), 'utf8')); } catch { return { works: [], places: [] }; } })();
 
 const OUT = new URL('../src/data/enrich.json', import.meta.url);
 const TMDB_TOKEN = process.env.TMDB_TOKEN?.trim();
@@ -154,7 +157,8 @@ async function main() {
 
   if (TMDB_TOKEN || TMDB_API_KEY) {
     log('## TMDB');
-    for (const w of works.filter((x) => x.type !== 'literature')) {
+    const all = [...works, ...wd.works.filter((x) => x.year < 3000)];
+    for (const w of all.filter((x) => x.type !== 'literature')) {
       try { const r = await enrichWork(w); if (r) out.works[w.id] = r; }
       catch (e) { log(`- ✗ TMDB: ${w.title.ko} — ${e.message}`); }
     }
@@ -171,7 +175,7 @@ async function main() {
   } else log('TourAPI 키가 없어 장소 보강을 건너뜁니다 (TOURAPI_KEY).');
 
   // 더 이상 없는 작품·장소 정리
-  const wIds = new Set(works.map((w) => w.id)), pIds = new Set(places.map((p) => p.id));
+  const wIds = new Set([...works, ...wd.works].map((w) => w.id)), pIds = new Set(places.map((p) => p.id));
   for (const k of Object.keys(out.works)) if (!wIds.has(k)) delete out.works[k];
   for (const k of Object.keys(out.places)) if (!pIds.has(k) || places.find((p) => p.id === k)?.country === 'JP') delete out.places[k];
 

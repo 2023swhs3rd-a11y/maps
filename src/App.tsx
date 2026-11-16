@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Country, Lang, Place, Work, WorkType } from './types';
 import { COUNTRIES } from './types';
 import { LANGS } from './types';
-import { works } from './data/works';
-import { places as rawPlaces } from './data/places';
+import { works, places as rawPlaces } from './data/index';
 import { placeExtra, officialCoord } from './data/enrich';
 import { WorkDetails, Sources } from './components/WorkDetails';
 import { t, tr, LANG_LABEL, LANG_SHORT } from './i18n';
@@ -27,6 +26,7 @@ const placesOf = (id: string) => places.filter((p) => p.workId === id).sort((a, 
 const regionOf = (p: Place) => p.address.ko.split(' ').slice(0, 2).join(' ');
 const SEOUL: [number, number] = [37.5663, 126.9779];
 const RADII = [5, 20, 50, 150];
+const SHELF_MAX = 15;
 const TYPES: WorkType[] = ['drama', 'film', 'anime', 'literature'];
 const countryOf = (p: Place): Country => p.country ?? 'KR';
 const workCountries = (id: string) => new Set(placesOf(id).map(countryOf));
@@ -195,7 +195,7 @@ export default function App() {
           <Cover work={w} lang={lang} size="sm" />
           <span className="grow">
             <strong>{tr(w.title, lang)}</strong>
-            <small>{t(w.type, lang)}<i>·</i>{w.year}<i>·</i>{tr(w.creator, lang)}</small>
+            <small>{[t(w.type, lang), w.year || '', tr(w.creator, lang)].filter(Boolean).join(' · ')}</small>
             <small className="muted">{t('placesN', lang, { n })}{n > 1 && <span className="tag-multi">{t('multi', lang)}</span>}</small>
           </span>
           <span className="chev" aria-hidden>›</span>
@@ -227,7 +227,7 @@ export default function App() {
           <div>
             <span className="type-label" style={{ color: TYPE_COLOR[w.type] }}><TypeDot type={w.type} />{t(w.type, lang)}</span>
             <h1>{tr(w.title, lang)}</h1>
-            <p className="muted">{w.year} · {tr(w.creator, lang)}</p>
+            <p className="muted">{[w.year || '', tr(w.creator, lang)].filter(Boolean).join(' · ')}</p>
           </div>
         </div>
         <div className="stats">
@@ -308,7 +308,9 @@ export default function App() {
             <span><b>{t('lockedDetail', lang, { s: tr(w.segments[p.appearsAt], lang) })}</b></span>
           </div>
         )}
-        {officialCoord(pe) ? <p className="hint">✓ {t('coordsOfficial', lang)}</p> : !p.verified && <p className="hint warn">⚠ {t('unverified', lang)}</p>}
+        {officialCoord(pe) ? <p className="hint">✓ {t('coordsOfficial', lang)}</p> : p.source === 'wikidata'
+          ? <p className="hint">ⓘ {t('fromWikidata', lang)} · <a href={`https://www.wikidata.org/wiki/${p.qid}`} target="_blank" rel="noopener">{p.qid}</a></p>
+          : !p.verified && <p className="hint warn">⚠ {t('unverified', lang)}</p>}
 
         {list.length > 1 && (
           <>
@@ -361,7 +363,9 @@ export default function App() {
       </div>
     );
   } else {
-    const shelves = TYPES.map((ty) => ({ ty, list: works.filter((w) => w.type === ty && workOk(w)) })).filter((x) => x.list.length > 0);
+    // 직접 정리한 작품을 먼저, 그다음 인기도(위키백과 언어판 수) 순
+    const rank = (w: Work) => (w.source ? 0 : 1000) + (w.popularity ?? 0);
+    const shelves = TYPES.map((ty) => ({ ty, list: works.filter((w) => w.type === ty && workOk(w)).sort((a, b) => rank(b) - rank(a)) })).filter((x) => x.list.length > 0);
     const nPlaces = places.filter((p) => typeOk(p) && countryOk(p)).length;
     header = (
       <div className="sheet-head home">
@@ -385,8 +389,13 @@ export default function App() {
         </button>
         {shelves.map(({ ty, list }) => (
           <section key={ty} className="shelf">
-            <h3 className="sec"><TypeDot type={ty} />{t(ty, lang)}</h3>
-            <ul className={typeFilter === 'all' ? 'hscroll' : 'grid'}>{list.map(workCard)}</ul>
+            <h3 className="sec"><TypeDot type={ty} />{t(ty, lang)} <span className="muted small">{list.length}</span></h3>
+            <ul className={typeFilter === 'all' ? 'hscroll' : 'grid'}>
+              {(typeFilter === 'all' ? list.slice(0, SHELF_MAX) : list).map(workCard)}
+              {typeFilter === 'all' && list.length > SHELF_MAX && (
+                <li><button className="wcard more" onClick={() => setTypeFilter(ty)}><span className="more-box">+{list.length - SHELF_MAX}</span><strong>{t('seeAll', lang)}</strong></button></li>
+              )}
+            </ul>
           </section>
         ))}
         <Sources lang={lang} />

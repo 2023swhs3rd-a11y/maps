@@ -73,6 +73,7 @@ export function Sources({ lang }: { lang: Lang }) {
       <ul>
         <li>{t('srcMap', lang)}: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a></li>
         <li>{t('srcWorks', lang)}: <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a> · {t('srcStreaming', lang)}: <a href="https://www.justwatch.com" target="_blank" rel="noopener">JustWatch</a></li>
+        <li>{t('srcWikidata', lang)}: <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a> (CC0)</li>
         <li>{t('srcPlaces', lang)}: <a href="https://api.visitkorea.or.kr" target="_blank" rel="noopener">{t('kto', lang)} TourAPI</a></li>
       </ul>
       <p className="tmdb-notice">
